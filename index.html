@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <title>UniEvent Map</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500&display=swap');
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --navy:    #0D1B2A;
+      --teal:    #1B998B;
+      --amber:   #FFBC42;
+      --offwhite:#F4F7F5;
+      --glass:   rgba(255,255,255,0.92);
+      --shadow:  0 4px 24px rgba(13,27,42,0.18);
+    }
+
+    html, body { height: 100%; font-family: 'Inter', sans-serif; background: var(--navy); }
+
+    /* ── Header ── */
+    #header {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
+      background: var(--navy);
+      padding: 12px 20px;
+      display: flex; align-items: center; gap: 14px;
+      border-bottom: 2px solid var(--teal);
+    }
+    .logo-dot {
+      width: 38px; height: 38px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--teal), var(--amber));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px; flex-shrink: 0;
+    }
+    #header h1 {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 18px; font-weight: 700; color: #fff;
+      line-height: 1.1;
+    }
+    #header p { font-size: 11px; color: var(--teal); font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; }
+
+    /* GPS status pill */
+    #gps-status {
+      margin-left: auto;
+      display: flex; align-items: center; gap: 6px;
+      background: rgba(255,255,255,0.07);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 20px; padding: 5px 12px;
+      font-size: 11px; color: #aaa; font-weight: 500;
+      white-space: nowrap;
+    }
+    #gps-dot {
+      width: 8px; height: 8px; border-radius: 50%; background: #555;
+      transition: background 0.4s;
+    }
+    #gps-dot.searching { background: var(--amber); animation: pulse 1.2s infinite; }
+    #gps-dot.active    { background: #4ade80; animation: pulse 2s infinite; }
+    #gps-dot.error     { background: #f87171; }
+
+    @keyframes pulse {
+      0%,100% { opacity:1; transform:scale(1); }
+      50%      { opacity:0.5; transform:scale(1.4); }
+    }
+
+    /* ── Map ── */
+    #map {
+      position: fixed;
+      top: 66px; left: 0; right: 0; bottom: 80px;
+    }
+
+    /* ── Bottom bar ── */
+    #bottom-bar {
+      position: fixed; bottom: 0; left: 0; right: 0; z-index: 1000;
+      background: var(--navy);
+      border-top: 2px solid var(--teal);
+      padding: 10px 16px;
+      display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    }
+    #location-text {
+      font-size: 12px; color: #ccc;
+      flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    #location-text span { color: var(--amber); font-weight: 600; }
+
+    #center-btn {
+      background: var(--teal); color: #fff;
+      border: none; border-radius: 10px;
+      padding: 8px 16px; font-size: 13px; font-weight: 600;
+      cursor: pointer; display: flex; align-items: center; gap: 6px;
+      font-family: 'Space Grotesk', sans-serif;
+      transition: background 0.2s, transform 0.15s;
+      flex-shrink: 0;
+    }
+    #center-btn:active { transform: scale(0.95); background: #17877b; }
+
+    /* ── Custom marker styles ── */
+    .custom-marker {
+      display: flex; flex-direction: column; align-items: center;
+    }
+    .marker-bubble {
+      background: var(--navy);
+      border: 2.5px solid var(--teal);
+      border-radius: 12px;
+      padding: 5px 10px;
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 12px; font-weight: 600; color: #fff;
+      white-space: nowrap;
+      box-shadow: var(--shadow);
+      display: flex; align-items: center; gap: 5px;
+    }
+    .marker-bubble .icon { font-size: 14px; }
+    .marker-stem {
+      width: 2px; height: 10px; background: var(--teal);
+    }
+    .marker-foot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--teal);
+    }
+
+    /* User location marker */
+    .user-marker-outer {
+      width: 22px; height: 22px; border-radius: 50%;
+      background: rgba(27,153,139,0.25);
+      display: flex; align-items: center; justify-content: center;
+      animation: ripple 1.8s infinite;
+    }
+    .user-marker-inner {
+      width: 12px; height: 12px; border-radius: 50%;
+      background: var(--teal);
+      border: 2.5px solid #fff;
+      box-shadow: 0 0 8px rgba(27,153,139,0.8);
+    }
+    @keyframes ripple {
+      0%   { box-shadow: 0 0 0 0 rgba(27,153,139,0.4); }
+      70%  { box-shadow: 0 0 0 14px rgba(27,153,139,0); }
+      100% { box-shadow: 0 0 0 0 rgba(27,153,139,0); }
+    }
+
+    /* Leaflet popup overrides */
+    .leaflet-popup-content-wrapper {
+      background: var(--navy) !important;
+      border: 1.5px solid var(--teal) !important;
+      border-radius: 12px !important;
+      color: #fff !important;
+      font-family: 'Inter', sans-serif !important;
+      box-shadow: var(--shadow) !important;
+    }
+    .leaflet-popup-tip { background: var(--teal) !important; }
+    .leaflet-popup-content { margin: 10px 14px !important; }
+    .popup-title { font-family: 'Space Grotesk',sans-serif; font-weight:700; font-size:14px; color:#fff; }
+    .popup-sub   { font-size:11px; color: var(--teal); margin-top:2px; }
+
+    /* Toast */
+    #toast {
+      position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%);
+      background: var(--navy); border: 1.5px solid var(--teal);
+      color: #fff; padding: 10px 20px; border-radius: 20px;
+      font-size: 13px; font-weight: 500; z-index: 2000;
+      opacity: 0; pointer-events: none;
+      transition: opacity 0.3s;
+    }
+    #toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <div id="header">
+    <div class="logo-dot">🎓</div>
+    <div>
+      <h1>UniEvent Map</h1>
+      <p>Live Campus Guide</p>
+    </div>
+    <div id="gps-status">
+      <div id="gps-dot" class="searching"></div>
+      <span id="gps-label">Locating…</span>
+    </div>
+  </div>
+
+  <!-- Map -->
+  <div id="map"></div>
+
+  <!-- Bottom bar -->
+  <div id="bottom-bar">
+    <div id="location-text">Waiting for GPS…</div>
+    <button id="center-btn" onclick="centerOnUser()">📍 Find Me</button>
+  </div>
+
+  <div id="toast"></div>
+
+<script>
+  // ── Locations ──
+  const UNI_CENTER = [5.938445919513163, 80.57645328465786];
+
+  const SPOTS = [
+    {
+      name: "University",
+      icon: "🎓",
+      coords: [5.938445919513163, 80.57645328465786],
+      desc: "Main campus centre"
+    },
+    {
+      name: "Washrooms",
+      icon: "🚻",
+      coords: [5.940416693338596, 80.5776467349624],
+      desc: "Public restrooms"
+    },
+    {
+      name: "Auditorium",
+      icon: "🎭",
+      coords: [5.939482762765903, 80.57742264539654],
+      desc: "Main event hall"
+    }
+  ];
+
+  // ── Init Map ──
+  const map = L.map('map', {
+    center: UNI_CENTER,
+    zoom: 17,
+    zoomControl: true,
+  });
+
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© <a href="https://openstreetmap.org">OpenStreetMap</a>',
+    maxZoom: 20
+  }).addTo(map);
+
+  // ── Custom marker factory ──
+  function makeMarkerIcon(spot) {
+    const html = `
+      <div class="custom-marker">
+        <div class="marker-bubble">
+          <span class="icon">${spot.icon}</span>${spot.name}
+        </div>
+        <div class="marker-stem"></div>
+        <div class="marker-foot"></div>
+      </div>`;
+    return L.divIcon({ html, className: '', iconAnchor: [0, 44], popupAnchor: [40, -44] });
+  }
+
+  // ── Add spot markers ──
+  SPOTS.forEach(spot => {
+    const marker = L.marker(spot.coords, { icon: makeMarkerIcon(spot) }).addTo(map);
+    marker.bindPopup(`
+      <div class="popup-title">${spot.icon} ${spot.name}</div>
+      <div class="popup-sub">${spot.desc}</div>
+    `);
+  });
+
+  // ── User location marker ──
+  const userIcon = L.divIcon({
+    html: `<div class="user-marker-outer"><div class="user-marker-inner"></div></div>`,
+    className: '', iconAnchor: [11, 11]
+  });
+
+  let userMarker = null;
+  let userCircle = null;
+  let userCoords = null;
+  let watchId = null;
+
+  function onPosition(pos) {
+    const lat = pos.coords.latitude;
+    const lng = pos.coords.longitude;
+    const acc = Math.round(pos.coords.accuracy);
+    userCoords = [lat, lng];
+
+    // Update/create marker
+    if (!userMarker) {
+      userMarker = L.marker(userCoords, { icon: userIcon, zIndexOffset: 1000 }).addTo(map);
+      userMarker.bindPopup('<div class="popup-title">📍 You are here</div>');
+    } else {
+      userMarker.setLatLng(userCoords);
+    }
+
+    // Accuracy circle
+    if (userCircle) map.removeLayer(userCircle);
+    userCircle = L.circle(userCoords, {
+      radius: acc, color: '#1B998B', fillColor: '#1B998B',
+      fillOpacity: 0.08, weight: 1
+    }).addTo(map);
+
+    // GPS status
+    document.getElementById('gps-dot').className = 'active';
+    document.getElementById('gps-label').textContent = 'GPS Active';
+
+    // Bottom bar
+    document.getElementById('location-text').innerHTML =
+      `You're at <span>${lat.toFixed(5)}, ${lng.toFixed(5)}</span> · ±${acc}m`;
+  }
+
+  function onError(err) {
+    document.getElementById('gps-dot').className = 'error';
+    document.getElementById('gps-label').textContent = 'GPS Off';
+    document.getElementById('location-text').textContent =
+      err.code === 1 ? 'Location access denied. Enable GPS to see your position.' :
+      err.code === 2 ? 'GPS signal unavailable.' : 'Location timeout.';
+    showToast('⚠️ ' + document.getElementById('location-text').textContent);
+  }
+
+  function startTracking() {
+    if (!navigator.geolocation) {
+      onError({ code: 2 });
+      return;
+    }
+    document.getElementById('gps-dot').className = 'searching';
+    watchId = navigator.geolocation.watchPosition(onPosition, onError, {
+      enableHighAccuracy: true,
+      maximumAge: 5000,
+      timeout: 15000
+    });
+  }
+
+  function centerOnUser() {
+    if (userCoords) {
+      map.flyTo(userCoords, 18, { duration: 1 });
+      if (userMarker) userMarker.openPopup();
+    } else {
+      showToast('📡 Still searching for your location…');
+      startTracking();
+    }
+  }
+
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 3000);
+  }
+
+  // ── Boot ──
+  startTracking();
+
+  // Fit map to show all markers on load
+  const allCoords = SPOTS.map(s => s.coords);
+  const bounds = L.latLngBounds(allCoords).pad(0.15);
+  map.fitBounds(bounds);
+</script>
+</body>
+</html>
