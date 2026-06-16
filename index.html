@@ -2,342 +2,252 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
-  <title>UniEvent Map</title>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>UniEvent — Find Your Way</title>
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700;800&family=Inter:wght@400;500;600&display=swap');
 
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --navy:    #0D1B2A;
-      --teal:    #1B998B;
-      --amber:   #FFBC42;
-      --offwhite:#F4F7F5;
-      --glass:   rgba(255,255,255,0.92);
-      --shadow:  0 4px 24px rgba(13,27,42,0.18);
+      --navy:   #0D1B2A;
+      --navy2:  #152336;
+      --teal:   #1B998B;
+      --teal2:  #13736A;
+      --amber:  #FFBC42;
+      --red:    #EF476F;
+      --purple: #6A4C93;
+      --blue:   #118AB2;
+      --green:  #06D6A0;
+      --white:  #FFFFFF;
+      --muted:  #8899AA;
     }
 
-    html, body { height: 100%; font-family: 'Inter', sans-serif; background: var(--navy); }
-
-    /* ── Header ── */
-    #header {
-      position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
+    html, body {
+      min-height: 100%;
+      font-family: 'Inter', sans-serif;
       background: var(--navy);
-      padding: 12px 20px;
-      display: flex; align-items: center; gap: 14px;
-      border-bottom: 2px solid var(--teal);
+      color: var(--white);
     }
-    .logo-dot {
-      width: 38px; height: 38px; border-radius: 50%;
-      background: linear-gradient(135deg, var(--teal), var(--amber));
-      display: flex; align-items: center; justify-content: center;
-      font-size: 18px; flex-shrink: 0;
+
+    /* ── Page wrapper ── */
+    .page {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      padding: 0 0 40px;
     }
-    #header h1 {
+
+    /* ── Hero header ── */
+    .hero {
+      background: linear-gradient(160deg, #0D1B2A 0%, #1a2f45 100%);
+      padding: 48px 24px 36px;
+      text-align: center;
+      border-bottom: 2px solid rgba(27,153,139,0.3);
+      position: relative;
+      overflow: hidden;
+    }
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: -60px; left: 50%; transform: translateX(-50%);
+      width: 300px; height: 300px; border-radius: 50%;
+      background: radial-gradient(circle, rgba(27,153,139,0.15) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: rgba(27,153,139,0.15);
+      border: 1px solid rgba(27,153,139,0.4);
+      border-radius: 20px; padding: 5px 14px;
+      font-size: 11px; font-weight: 600; color: var(--teal);
+      letter-spacing: 0.08em; text-transform: uppercase;
+      margin-bottom: 18px;
+    }
+    .hero-badge .dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--teal); animation: blink 1.5s infinite;
+    }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+    .hero h1 {
       font-family: 'Space Grotesk', sans-serif;
-      font-size: 18px; font-weight: 700; color: #fff;
-      line-height: 1.1;
+      font-size: 32px; font-weight: 800; color: var(--white);
+      line-height: 1.15; margin-bottom: 10px;
     }
-    #header p { font-size: 11px; color: var(--teal); font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; }
+    .hero h1 span { color: var(--teal); }
 
-    /* GPS status pill */
-    #gps-status {
-      margin-left: auto;
-      display: flex; align-items: center; gap: 6px;
-      background: rgba(255,255,255,0.07);
-      border: 1px solid rgba(255,255,255,0.12);
-      border-radius: 20px; padding: 5px 12px;
-      font-size: 11px; color: #aaa; font-weight: 500;
-      white-space: nowrap;
-    }
-    #gps-dot {
-      width: 8px; height: 8px; border-radius: 50%; background: #555;
-      transition: background 0.4s;
-    }
-    #gps-dot.searching { background: var(--amber); animation: pulse 1.2s infinite; }
-    #gps-dot.active    { background: #4ade80; animation: pulse 2s infinite; }
-    #gps-dot.error     { background: #f87171; }
-
-    @keyframes pulse {
-      0%,100% { opacity:1; transform:scale(1); }
-      50%      { opacity:0.5; transform:scale(1.4); }
+    .hero p {
+      font-size: 14px; color: var(--muted); line-height: 1.6;
+      max-width: 300px; margin: 0 auto;
     }
 
-    /* ── Map ── */
-    #map {
-      position: fixed;
-      top: 66px; left: 0; right: 0; bottom: 80px;
+    /* ── Section label ── */
+    .section-label {
+      font-size: 11px; font-weight: 700; color: var(--muted);
+      text-transform: uppercase; letter-spacing: 0.1em;
+      padding: 28px 24px 12px;
     }
 
-    /* ── Bottom bar ── */
-    #bottom-bar {
-      position: fixed; bottom: 0; left: 0; right: 0; z-index: 1000;
-      background: var(--navy);
-      border-top: 2px solid var(--teal);
-      padding: 10px 16px;
-      display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    /* ── Cards grid ── */
+    .cards {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      padding: 0 16px;
     }
-    #location-text {
-      font-size: 12px; color: #ccc;
-      flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-    }
-    #location-text span { color: var(--amber); font-weight: 600; }
 
-    #center-btn {
-      background: var(--teal); color: #fff;
-      border: none; border-radius: 10px;
-      padding: 8px 16px; font-size: 13px; font-weight: 600;
-      cursor: pointer; display: flex; align-items: center; gap: 6px;
-      font-family: 'Space Grotesk', sans-serif;
-      transition: background 0.2s, transform 0.15s;
-      flex-shrink: 0;
-    }
-    #center-btn:active { transform: scale(0.95); background: #17877b; }
-
-    /* ── Custom marker styles ── */
-    .custom-marker {
+    .card {
+      background: var(--navy2);
+      border: 1.5px solid rgba(255,255,255,0.07);
+      border-radius: 20px;
+      padding: 22px 16px 18px;
       display: flex; flex-direction: column; align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      cursor: pointer;
+      transition: transform 0.18s, border-color 0.18s, box-shadow 0.18s;
+      position: relative;
+      overflow: hidden;
+      -webkit-tap-highlight-color: transparent;
     }
-    .marker-bubble {
-      background: var(--navy);
-      border: 2.5px solid var(--teal);
-      border-radius: 12px;
-      padding: 5px 10px;
-      font-family: 'Space Grotesk', sans-serif;
-      font-size: 12px; font-weight: 600; color: #fff;
-      white-space: nowrap;
-      box-shadow: var(--shadow);
-      display: flex; align-items: center; gap: 5px;
+    .card::after {
+      content: '';
+      position: absolute; inset: 0;
+      background: var(--card-color);
+      opacity: 0;
+      transition: opacity 0.18s;
+      border-radius: 20px;
     }
-    .marker-bubble .icon { font-size: 14px; }
-    .marker-stem {
-      width: 2px; height: 10px; background: var(--teal);
-    }
-    .marker-foot {
-      width: 8px; height: 8px; border-radius: 50%;
-      background: var(--teal);
-    }
+    .card:active { transform: scale(0.96); }
+    .card:active::after { opacity: 0.08; }
+    .card:hover { border-color: var(--card-color); box-shadow: 0 8px 28px rgba(0,0,0,0.3); transform: translateY(-2px); }
 
-    /* User location marker */
-    .user-marker-outer {
-      width: 22px; height: 22px; border-radius: 50%;
-      background: rgba(27,153,139,0.25);
+    .card-icon {
+      width: 60px; height: 60px; border-radius: 18px;
+      background: rgba(255,255,255,0.06);
       display: flex; align-items: center; justify-content: center;
-      animation: ripple 1.8s infinite;
+      font-size: 28px;
+      border: 1.5px solid rgba(255,255,255,0.08);
+      position: relative; z-index: 1;
+      transition: background 0.18s;
     }
-    .user-marker-inner {
-      width: 12px; height: 12px; border-radius: 50%;
-      background: var(--teal);
-      border: 2.5px solid #fff;
-      box-shadow: 0 0 8px rgba(27,153,139,0.8);
-    }
-    @keyframes ripple {
-      0%   { box-shadow: 0 0 0 0 rgba(27,153,139,0.4); }
-      70%  { box-shadow: 0 0 0 14px rgba(27,153,139,0); }
-      100% { box-shadow: 0 0 0 0 rgba(27,153,139,0); }
+    .card:hover .card-icon { background: rgba(255,255,255,0.1); }
+
+    .card-name {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 14px; font-weight: 700; color: var(--white);
+      text-align: center; line-height: 1.3;
+      position: relative; z-index: 1;
     }
 
-    /* Leaflet popup overrides */
-    .leaflet-popup-content-wrapper {
-      background: var(--navy) !important;
-      border: 1.5px solid var(--teal) !important;
-      border-radius: 12px !important;
-      color: #fff !important;
-      font-family: 'Inter', sans-serif !important;
-      box-shadow: var(--shadow) !important;
+    .card-sub {
+      font-size: 11px; color: var(--muted);
+      text-align: center; line-height: 1.4;
+      position: relative; z-index: 1;
     }
-    .leaflet-popup-tip { background: var(--teal) !important; }
-    .leaflet-popup-content { margin: 10px 14px !important; }
-    .popup-title { font-family: 'Space Grotesk',sans-serif; font-weight:700; font-size:14px; color:#fff; }
-    .popup-sub   { font-size:11px; color: var(--teal); margin-top:2px; }
 
-    /* Toast */
-    #toast {
-      position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%);
-      background: var(--navy); border: 1.5px solid var(--teal);
-      color: #fff; padding: 10px 20px; border-radius: 20px;
-      font-size: 13px; font-weight: 500; z-index: 2000;
-      opacity: 0; pointer-events: none;
-      transition: opacity 0.3s;
+    .card-nav {
+      display: flex; align-items: center; gap: 5px;
+      background: var(--card-color);
+      color: var(--white);
+      border-radius: 10px; padding: 6px 14px;
+      font-size: 11px; font-weight: 700;
+      letter-spacing: 0.04em; text-transform: uppercase;
+      position: relative; z-index: 1;
+      margin-top: 2px;
+      transition: opacity 0.15s;
     }
-    #toast.show { opacity: 1; }
+    .card:active .card-nav { opacity: 0.8; }
+
+    /* Individual card colors */
+    .card-1 { --card-color: #6A4C93; }
+    .card-2 { --card-color: #118AB2; }
+    .card-3 { --card-color: #06D6A0; }
+    .card-4 { --card-color: #EF476F; }
+
+    /* ── Footer note ── */
+    .footer-note {
+      margin: 32px 24px 0;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 14px;
+      padding: 14px 16px;
+      display: flex; align-items: flex-start; gap: 10px;
+    }
+    .footer-note .fi { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+    .footer-note p { font-size: 12px; color: var(--muted); line-height: 1.6; }
+    .footer-note p strong { color: var(--white); }
+
   </style>
 </head>
 <body>
+<div class="page">
 
-  <!-- Header -->
-  <div id="header">
-    <div class="logo-dot">🎓</div>
-    <div>
-      <h1>UniEvent Map</h1>
-      <p>Live Campus Guide</p>
+  <!-- Hero -->
+  <div class="hero">
+    <div class="hero-badge">
+      <div class="dot"></div>
+      Live Event Guide
     </div>
-    <div id="gps-status">
-      <div id="gps-dot" class="searching"></div>
-      <span id="gps-label">Locating…</span>
-    </div>
+    <h1>Find Your<br><span>Way Around</span></h1>
+    <p>Tap any location below to open Google Maps with directions from where you are.</p>
   </div>
 
-  <!-- Map -->
-  <div id="map"></div>
+  <div class="section-label">📍 Campus Locations</div>
 
-  <!-- Bottom bar -->
-  <div id="bottom-bar">
-    <div id="location-text">Waiting for GPS…</div>
-    <button id="center-btn" onclick="centerOnUser()">📍 Find Me</button>
+  <!-- Cards -->
+  <div class="cards">
+
+    <!-- 1. Auditorium -->
+    <a class="card card-1"
+       href="https://www.google.com/maps/dir/?api=1&destination=5.938048420473226,80.57678684002938&travelmode=walking"
+       target="_blank" rel="noopener">
+      <div class="card-icon">🎭</div>
+      <div class="card-name">Auditorium</div>
+      <div class="card-sub">Main event hall &amp; stage</div>
+      <div class="card-nav">▶ Navigate</div>
+    </a>
+
+    <!-- 2. LCTU Rooms -->
+    <a class="card card-2"
+       href="https://www.google.com/maps/dir/?api=1&destination=5.939545383181938,80.57738228989541&travelmode=walking"
+       target="_blank" rel="noopener">
+      <div class="card-icon">🏫</div>
+      <div class="card-name">LCTU Rooms</div>
+      <div class="card-sub">Lecture &amp; class rooms</div>
+      <div class="card-nav">▶ Navigate</div>
+    </a>
+
+    <!-- 3. Booth -->
+    <a class="card card-3"
+       href="https://www.google.com/maps/dir/?api=1&destination=5.939111207488314,80.577845559906&travelmode=walking"
+       target="_blank" rel="noopener">
+      <div class="card-icon">🎪</div>
+      <div class="card-name">Booth</div>
+      <div class="card-sub">Event stalls &amp; exhibits</div>
+      <div class="card-nav">▶ Navigate</div>
+    </a>
+
+    <!-- 4. Washrooms -->
+    <a class="card card-4"
+       href="https://www.google.com/maps/dir/?api=1&destination=5.940416693338596,80.5776467349624&travelmode=walking"
+       target="_blank" rel="noopener">
+      <div class="card-icon">🚻</div>
+      <div class="card-name">Washrooms</div>
+      <div class="card-sub">Nearest restrooms</div>
+      <div class="card-nav">▶ Navigate</div>
+    </a>
+
   </div>
 
-  <div id="toast"></div>
+  <!-- Footer note -->
+  <div class="footer-note">
+    <div class="fi">💡</div>
+    <p><strong>How it works:</strong> Tap a location — Google Maps opens automatically and gives you walking directions from where you currently are.</p>
+  </div>
 
-<script>
-  // ── Locations ──
-  const UNI_CENTER = [5.938445919513163, 80.57645328465786];
-
-  const SPOTS = [
-    {
-      name: "University",
-      icon: "🎓",
-      coords: [5.938445919513163, 80.57645328465786],
-      desc: "Main campus centre"
-    },
-    {
-      name: "Washrooms",
-      icon: "🚻",
-      coords: [5.940416693338596, 80.5776467349624],
-      desc: "Public restrooms"
-    },
-    {
-      name: "Auditorium",
-      icon: "🎭",
-      coords: [5.939482762765903, 80.57742264539654],
-      desc: "Main event hall"
-    }
-  ];
-
-  // ── Init Map ──
-  const map = L.map('map', {
-    center: UNI_CENTER,
-    zoom: 17,
-    zoomControl: true,
-  });
-
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '© <a href="https://openstreetmap.org">OpenStreetMap</a>',
-    maxZoom: 20
-  }).addTo(map);
-
-  // ── Custom marker factory ──
-  function makeMarkerIcon(spot) {
-    const html = `
-      <div class="custom-marker">
-        <div class="marker-bubble">
-          <span class="icon">${spot.icon}</span>${spot.name}
-        </div>
-        <div class="marker-stem"></div>
-        <div class="marker-foot"></div>
-      </div>`;
-    return L.divIcon({ html, className: '', iconAnchor: [0, 44], popupAnchor: [40, -44] });
-  }
-
-  // ── Add spot markers ──
-  SPOTS.forEach(spot => {
-    const marker = L.marker(spot.coords, { icon: makeMarkerIcon(spot) }).addTo(map);
-    marker.bindPopup(`
-      <div class="popup-title">${spot.icon} ${spot.name}</div>
-      <div class="popup-sub">${spot.desc}</div>
-    `);
-  });
-
-  // ── User location marker ──
-  const userIcon = L.divIcon({
-    html: `<div class="user-marker-outer"><div class="user-marker-inner"></div></div>`,
-    className: '', iconAnchor: [11, 11]
-  });
-
-  let userMarker = null;
-  let userCircle = null;
-  let userCoords = null;
-  let watchId = null;
-
-  function onPosition(pos) {
-    const lat = pos.coords.latitude;
-    const lng = pos.coords.longitude;
-    const acc = Math.round(pos.coords.accuracy);
-    userCoords = [lat, lng];
-
-    // Update/create marker
-    if (!userMarker) {
-      userMarker = L.marker(userCoords, { icon: userIcon, zIndexOffset: 1000 }).addTo(map);
-      userMarker.bindPopup('<div class="popup-title">📍 You are here</div>');
-    } else {
-      userMarker.setLatLng(userCoords);
-    }
-
-    // Accuracy circle
-    if (userCircle) map.removeLayer(userCircle);
-    userCircle = L.circle(userCoords, {
-      radius: acc, color: '#1B998B', fillColor: '#1B998B',
-      fillOpacity: 0.08, weight: 1
-    }).addTo(map);
-
-    // GPS status
-    document.getElementById('gps-dot').className = 'active';
-    document.getElementById('gps-label').textContent = 'GPS Active';
-
-    // Bottom bar
-    document.getElementById('location-text').innerHTML =
-      `You're at <span>${lat.toFixed(5)}, ${lng.toFixed(5)}</span> · ±${acc}m`;
-  }
-
-  function onError(err) {
-    document.getElementById('gps-dot').className = 'error';
-    document.getElementById('gps-label').textContent = 'GPS Off';
-    document.getElementById('location-text').textContent =
-      err.code === 1 ? 'Location access denied. Enable GPS to see your position.' :
-      err.code === 2 ? 'GPS signal unavailable.' : 'Location timeout.';
-    showToast('⚠️ ' + document.getElementById('location-text').textContent);
-  }
-
-  function startTracking() {
-    if (!navigator.geolocation) {
-      onError({ code: 2 });
-      return;
-    }
-    document.getElementById('gps-dot').className = 'searching';
-    watchId = navigator.geolocation.watchPosition(onPosition, onError, {
-      enableHighAccuracy: true,
-      maximumAge: 5000,
-      timeout: 15000
-    });
-  }
-
-  function centerOnUser() {
-    if (userCoords) {
-      map.flyTo(userCoords, 18, { duration: 1 });
-      if (userMarker) userMarker.openPopup();
-    } else {
-      showToast('📡 Still searching for your location…');
-      startTracking();
-    }
-  }
-
-  function showToast(msg) {
-    const t = document.getElementById('toast');
-    t.textContent = msg;
-    t.classList.add('show');
-    setTimeout(() => t.classList.remove('show'), 3000);
-  }
-
-  // ── Boot ──
-  startTracking();
-
-  // Fit map to show all markers on load
-  const allCoords = SPOTS.map(s => s.coords);
-  const bounds = L.latLngBounds(allCoords).pad(0.15);
-  map.fitBounds(bounds);
-</script>
+</div>
 </body>
 </html>
